@@ -1,49 +1,59 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
 
-# Step 1: Page configuration
-st.set_page_config(page_title="Breast Cancer Classifier", layout="wide")
-st.title("Breast Cancer Classification App")
-st.write("Predict whether a tumor is malignant or benign using all numeric features.")
+# ----------------------
+# 1. Page setup
+# ----------------------
+st.title("Breast Cancer Classifier")
+st.write("Predict whether a tumor is malignant or benign.")
 
-# Step 2: Load trained model, scaler, and label encoder
+# ----------------------
+# 2. Load model, scaler, encoder, and feature names
+# ----------------------
 model = joblib.load("models/svm_model.pkl")
 scaler = joblib.load("models/scaler.pkl")
-label_encoder = joblib.load("models/label_encoder.pkl")
+encoder = joblib.load("models/label_encoder.pkl")
+feature_names = joblib.load("models/feature_names.pkl")  # exact features used in training
 
-# Step 3: Load feature names from dataset
+# ----------------------
+# 3. Load dataset (optional, for min/max/mean)
+# ----------------------
 data = pd.read_csv("data/breast_cancer_data.csv")
-feature_names = [col for col in data.columns if col not in ["id", "diagnosis"]]
 
-# Step 4: Sidebar inputs for all features
-st.sidebar.header("Enter Tumor Features")
-input_data = []
-for feature in feature_names:
-    value = st.sidebar.number_input(feature, value=float(data[feature].mean()))
-    input_data.append(value)
+# ----------------------
+# 4. Input fields for all features
+# ----------------------
+st.write("Enter tumor features:")
 
-input_array = np.array([input_data])
-input_scaled = scaler.transform(input_array)
-
-# Step 5: Predict button
-if st.sidebar.button("Predict"):
-    prediction = model.predict(input_scaled)[0]            # Predict class
-    probability = model.predict_proba(input_scaled)[0]     # Get confidence
-    predicted_label = label_encoder.inverse_transform([prediction])[0]
-
-    # Step 6: Display results
-    st.subheader("Prediction Result")
-    if predicted_label == "M":
-        st.write(f"Tumor is Malignant ({probability[1]*100:.1f}% confidence)")
+inputs = []
+for f in feature_names:
+    if f in data.columns:
+        min_val = float(data[f].min())
+        max_val = float(data[f].max())
+        mean_val = float(data[f].mean())
     else:
-        st.write(f"Tumor is Benign ({probability[0]*100:.1f}% confidence)")
+        min_val, max_val, mean_val = 0.0, 10.0, 5.0
 
-# Explanation of Steps and Tools:
-# Streamlit: Create an interactive web app.
-# Sidebar: Users can input all numeric features.
-# joblib: Load the saved model, scaler, and label encoder.
-# Scale user inputs before prediction.
-# Display predicted class and confidence.
+    value = st.number_input(f, min_value=min_val, max_value=max_val, value=mean_val)
+    inputs.append(value)
+
+# ----------------------
+# 5. Predict button
+# ----------------------
+if st.button("Predict"):
+    X = np.array([inputs])
+    X_scaled = scaler.transform(X)
+    pred = model.predict(X_scaled)[0]
+    prob = model.predict_proba(X_scaled)[0]
+    label = encoder.inverse_transform([pred])[0]
+
+    # ----------------------
+    # 6. Show result
+    # ----------------------
+    st.subheader("Prediction Result")
+    if label == "M":
+        st.write(f"Tumor is Malignant ({prob[1]*100:.1f}% confidence)")
+    else:
+        st.write(f"Tumor is Benign ({prob[0]*100:.1f}% confidence)")
