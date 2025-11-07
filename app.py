@@ -41,7 +41,6 @@ if st.sidebar.button("Predict"):
     else:
         st.write(f"Tumor is Benign ({probability[0]*100:.1f}% confidence)")
 
-
 # Explanation of Steps and Tools:
 # Streamlit: Create an interactive web app.
 # Sidebar: Users can input all numeric features.
